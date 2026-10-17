@@ -1,0 +1,1704 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sfiral Chirality Auditor — 3D Showcase</title>
+<style>
+  :root {
+    --bg: #070b14;
+    --panel: rgba(15,23,40,.92);
+    --border: #1f2d4a;
+    --text: #e8f0ff;
+    --muted: #8aa0c0;
+    --accent: #00e5ff;
+    --orange: #ff9040;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: Inter, system-ui, sans-serif;
+    overflow: hidden;
+  }
+
+  #app {
+    display: grid;
+    grid-template-columns: 360px 1fr;
+    height: 100vh;
+  }
+
+  #side {
+    background: var(--panel);
+    border-right: 1px solid var(--border);
+    padding: 16px;
+    overflow-y: auto;
+  }
+
+  #viewport {
+    position: relative;
+  }
+
+  canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+  }
+
+  h1 {
+    font-size: 1.05rem;
+    margin: 0 0 4px;
+    color: var(--accent);
+  }
+
+  .sub {
+    font-size: .72rem;
+    color: var(--muted);
+    line-height: 1.45;
+    margin-bottom: 10px;
+  }
+
+  label {
+    display: block;
+    font-size: .72rem;
+    color: var(--muted);
+    margin: 12px 0 4px;
+  }
+
+  select, button {
+    width: 100%;
+    background: #1c2841;
+    color: var(--text);
+    border: 1px solid #2a3f6d;
+    border-radius: 6px;
+    padding: 7px 9px;
+    font-size: .8rem;
+    outline: none;
+    cursor: pointer;
+  }
+
+  select:focus, button:hover {
+    border-color: var(--accent);
+  }
+
+  .info-btn {
+    margin: 0 0 12px;
+    background: rgba(0,229,255,.12);
+    border-color: rgba(0,229,255,.35);
+    color: #bff8ff;
+    font-weight: 700;
+  }
+
+  .modes {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 6px;
+  }
+
+  .modes button.active {
+    background: var(--accent);
+    color: #06101c;
+    font-weight: 700;
+    border-color: var(--accent);
+  }
+
+  .row2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 8px;
+  }
+
+  .upload-note {
+    margin-top: 6px;
+    font-size: .66rem;
+    color: #7f95b5;
+    line-height: 1.35;
+  }
+
+  .drop-hint {
+    position: absolute;
+    inset: 12px;
+    border: 2px dashed rgba(0,229,255,.45);
+    border-radius: 16px;
+    background: rgba(0,229,255,.06);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    color: #bff8ff;
+    font-size: .95rem;
+    font-weight: 700;
+    pointer-events: none;
+    z-index: 50;
+    backdrop-filter: blur(3px);
+  }
+
+  .drop-hint.visible {
+    display: flex;
+  }
+
+  #info {
+    margin-top: 14px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #0d1424;
+    font-size: .75rem;
+    font-family: ui-monospace, monospace;
+    white-space: pre-wrap;
+    color: #bcd4ee;
+  }
+
+  .report {
+    margin-top: 12px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: #0b1020;
+    font-size: .72rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 430px;
+    overflow: auto;
+    color: #bcd4ee;
+  }
+
+  .legend {
+    margin-top: 12px;
+    font-size: .7rem;
+    color: var(--muted);
+    line-height: 1.7;
+  }
+
+  .dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+
+  .check {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 10px;
+    font-size: .75rem;
+    color: var(--muted);
+    cursor: pointer;
+  }
+
+  .check input {
+    width: auto;
+  }
+
+  .foot {
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-size: .64rem;
+    color: #6d84a3;
+    line-height: 1.5;
+  }
+
+  .foot a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  #badge {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    padding: 6px 12px;
+    background: rgba(7,11,20,.8);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: .7rem;
+    color: var(--muted);
+    backdrop-filter: blur(6px);
+  }
+
+  #badge b {
+    color: var(--accent);
+  }
+
+  .modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(2,5,12,.72);
+    backdrop-filter: blur(8px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 20px;
+  }
+
+  .modal-backdrop.open {
+    display: flex;
+  }
+
+  .modal {
+    width: min(880px, 100%);
+    max-height: 86vh;
+    overflow: auto;
+    background: #0f1728;
+    border: 1px solid #26365a;
+    border-radius: 16px;
+    box-shadow: 0 24px 80px rgba(0,0,0,.55);
+    color: #e8f0ff;
+  }
+
+  .modal-head {
+    position: sticky;
+    top: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: linear-gradient(180deg, #101a2e, #0f1728);
+    border-bottom: 1px solid #26365a;
+    z-index: 2;
+  }
+
+  .modal-head h2 {
+    margin: 0;
+    font-size: 1.05rem;
+    color: #00e5ff;
+  }
+
+  .modal-close {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    border-radius: 10px;
+    background: #1c2841;
+    border: 1px solid #2a3f6d;
+    color: #e8f0ff;
+    font-size: 1.2rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-close:hover {
+    border-color: #ff4d6d;
+    color: #ff9aab;
+  }
+
+  .modal-body {
+    padding: 16px 18px 20px;
+    font-size: .88rem;
+    line-height: 1.58;
+    color: #c9d8ee;
+  }
+
+  .modal-body h3 {
+    margin: 18px 0 8px;
+    color: #e8f0ff;
+    font-size: 1rem;
+  }
+
+  .modal-body h3:first-child {
+    margin-top: 0;
+  }
+
+  .modal-body p {
+    margin: 8px 0;
+  }
+
+  .modal-body ul {
+    margin: 8px 0 0 18px;
+    padding: 0;
+  }
+
+  .modal-body li {
+    margin: 6px 0;
+  }
+
+  .modal-body a {
+    color: var(--accent);
+    text-decoration: none;
+  }
+
+  .modal-body a:hover {
+    text-decoration: underline;
+  }
+
+  .note {
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px solid rgba(255,196,0,.25);
+    background: rgba(255,196,0,.08);
+    border-radius: 10px;
+    color: #ffe3a3;
+  }
+
+  .warn {
+    border-color: rgba(255,77,109,.28);
+    background: rgba(255,77,109,.08);
+    color: #ffc2cc;
+  }
+
+  .ok {
+    border-color: rgba(0,255,154,.22);
+    background: rgba(0,255,154,.08);
+    color: #b9ffe0;
+  }
+
+  .kbd {
+    background: #1c2841;
+    border: 1px solid #2a3f6d;
+    border-radius: 6px;
+    padding: 2px 6px;
+    font-family: ui-monospace, monospace;
+    font-size: .82rem;
+  }
+
+  .pill-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+
+  .pill {
+    display: inline-block;
+    padding: 5px 9px;
+    border-radius: 999px;
+    border: 1px solid rgba(0,229,255,.25);
+    background: rgba(0,229,255,.08);
+    color: var(--accent);
+    font-size: .76rem;
+    font-weight: 700;
+  }
+
+  @media (max-width: 860px) {
+    #app {
+      grid-template-columns: 1fr;
+      grid-template-rows: minmax(280px, 42vh) 1fr;
+    }
+
+    #side {
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+    }
+  }
+</style>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/"
+  }
+}
+</script>
+</head>
+
+<body>
+<div id="app">
+  <div id="side">
+    <h1>Sfiral 3D Showcase</h1>
+    <div class="sub">
+      Демонстрационный просмотрщик структур. Вращение — левая кнопка мыши,
+      зум — колесо, панорама — средняя кнопка.
+    </div>
+
+    <button id="infoBtn" class="info-btn">ℹ Что это?</button>
+
+    <label>Структура</label>
+    <select id="modelSelect"></select>
+
+    <label>Режим</label>
+    <div class="modes">
+      <button id="mOriginal" class="active">Оригинал</button>
+      <button id="mMirror">Зеркало</button>
+      <button id="mOverlay">Overlay</button>
+    </div>
+
+    <label>Своя модель</label>
+    <input
+      type="file"
+      id="fileInput"
+      accept=".sdf,.json,.txt"
+      multiple
+      style="display:none"
+    />
+
+    <div class="row2">
+      <button id="uploadBtn">Загрузить файл</button>
+      <button id="clearUserBtn">Сбросить свои</button>
+    </div>
+
+    <div class="row2">
+      <button id="saveModelBtn">Сохранить модель JSON</button>
+      <button id="saveReportBtn">Скачать паспорт JSON</button>
+    </div>
+
+    <div class="upload-note">
+      Можно перетащить SDF или JSON прямо в 3D-окно.
+      Файл обрабатывается локально в браузере и никуда не отправляется.
+      Это демо-паспорт, а не полноценный лабораторный Sfiral-отчёт.
+    </div>
+
+    <label class="check">
+      <input type="checkbox" id="autoRotate" checked />
+      Авто-вращение
+    </label>
+
+    <label class="check">
+      <input type="checkbox" id="showBonds" checked />
+      Показывать связи
+    </label>
+
+    <div id="info">—</div>
+    <div id="report" class="report">—</div>
+
+    <div class="legend">
+      <span class="dot" style="background:#909090"></span>C углерод<br />
+      <span class="dot" style="background:#3050f8"></span>N азот<br />
+      <span class="dot" style="background:#ff0d0d"></span>O кислород<br />
+      <span class="dot" style="background:#ffff30"></span>S сера<br />
+      <span class="dot" style="background:#ffffff;border:1px solid #555"></span>H водород
+    </div>
+
+    <div class="foot">
+      Это витрина, а не рабочий аудитор. Полноценная версия
+      <b>Sfiral Chirality Auditor v0.3.1-lab</b> существует в отдельном
+      вычислительном контуре.<br /><br />
+      Связанные проекты:
+      <a href="https://github.com/stanislavsfiral/PiFi-IA_Anima" target="_blank" rel="noreferrer">PiFi-IA_Anima</a>,
+      <a href="https://github.com/Sfiralium/Sphiral-Engine" target="_blank" rel="noreferrer">Sfiral Engine</a>.
+    </div>
+  </div>
+
+  <div id="viewport">
+    <div id="badge">Sfiral · <b id="badgeMode">original</b></div>
+    <div id="dropHint" class="drop-hint">Отпусти SDF или JSON здесь</div>
+    <canvas id="c"></canvas>
+  </div>
+</div>
+
+<div id="infoModal" class="modal-backdrop" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="infoTitle">
+    <div class="modal-head">
+      <h2 id="infoTitle">О приложении</h2>
+      <button id="infoClose" class="modal-close" aria-label="Закрыть">×</button>
+    </div>
+
+    <div class="modal-body">
+      <h3>Что это</h3>
+      <p>
+        <b>Sfiral 3D Showcase</b> — это демонстрационная веб-витрина проекта
+        <b>Sfiral Chirality Auditor</b>.
+      </p>
+      <p>
+        Приложение показывает трёхмерные структуры, загруженные из файла
+        <span class="kbd">models.json</span>, и позволяет визуально сравнить:
+      </p>
+      <ul>
+        <li>исходную структуру;</li>
+        <li>её зеркальное представление;</li>
+        <li>наложение оригинала и зеркала в режиме <b>Overlay</b>.</li>
+      </ul>
+
+      <h3>Для чего нужна эта витрина</h3>
+      <p>
+        Главная цель — наглядно показать идею геометрического аудита хиральности
+        и зеркальной антисимметрии.
+      </p>
+      <ul>
+        <li>Можно выбрать модель из списка.</li>
+        <li>Можно загрузить свою SDF или JSON-модель локально в браузере.</li>
+        <li>Покрутить модель мышью.</li>
+        <li>Посмотреть оригинал, зеркало и их наложение.</li>
+        <li>Получить базовый геометрический паспорт модели.</li>
+        <li>Сохранить модель или паспорт в JSON.</li>
+      </ul>
+      <p>
+        Это полезно для демонстрации проекта, образовательных целей, быстрого
+        знакомства с методом и визуальной проверки того, как структура ведёт
+        себя при зеркальном преобразовании.
+      </p>
+
+      <h3>Что показывает отчёт слева</h3>
+      <p>
+        Для выбранной модели витрина рассчитывает базовые геометрические данные:
+      </p>
+      <ul>
+        <li>число атомов и связей;</li>
+        <li>химическую формулу;</li>
+        <li>приблизительную молекулярную массу;</li>
+        <li>состав по элементам;</li>
+        <li>габариты структуры;</li>
+        <li>центроид;</li>
+        <li>радиус инерции;</li>
+        <li>статистику длин связей;</li>
+        <li>зеркальный preview по правилу <span class="kbd">x → −x</span>.</li>
+      </ul>
+
+      <h3>Чем это НЕ является</h3>
+      <div class="note warn">
+        <p>
+          Эта страница <b>не является полноценным лабораторным инструментом</b>.
+        </p>
+        <p>
+          Она не заменяет рабочую версию <b>Sfiral Chirality Auditor v0.3.1-lab</b>,
+          которая существует в отдельном вычислительном контуре и предназначена
+          для воспроизводимого геометрического аудита.
+        </p>
+      </div>
+
+      <p>
+        В частности, данная витрина <b>не является</b>:
+      </p>
+      <ul>
+        <li>молекулярным докингом;</li>
+        <li>силовым полем;</li>
+        <li>молекулярной динамикой;</li>
+        <li>квантово-химическим расчётом;</li>
+        <li>предсказателем токсичности;</li>
+        <li>предсказателем лекарственной эффективности;</li>
+        <li>моделью связывания;</li>
+        <li>медицинской или регуляторной системой;</li>
+        <li>заменой экспертной химической или биологической интерпретации.</li>
+      </ul>
+
+      <h3>Как связаны витрина и рабочий аудитор</h3>
+      <p>
+        Рабочая лабораторная версия <b>Sfiral Chirality Auditor</b> считает более
+        глубокие геометрические характеристики, например:
+      </p>
+      <div class="pill-row">
+        <span class="pill">g_original</span>
+        <span class="pill">g_mirror</span>
+        <span class="pill">sign_flip</span>
+        <span class="pill">RMSD</span>
+        <span class="pill">S-overlay</span>
+        <span class="pill">JSON audit</span>
+      </div>
+      <p>
+        Данная витрина может показывать эти результаты, если рядом с ней лежит
+        файл <span class="kbd">reports.json</span>, сгенерированный Python-ядром.
+        Если файла нет, отображается только базовый геометрический паспорт.
+      </p>
+
+      <h3>Загрузка своей модели</h3>
+      <p>
+        Пользователь может загрузить свою модель в форматах:
+      </p>
+      <ul>
+        <li><span class="kbd">.sdf</span>;</li>
+        <li><span class="kbd">.json</span> с полями <span class="kbd">atoms</span> и опционально <span class="kbd">bonds</span>;</li>
+        <li><span class="kbd">.txt</span>, если внутри текст SDF.</li>
+      </ul>
+      <p>
+        Файл читается локально в браузере. Никуда на сервер он не отправляется.
+        После загрузки модель появляется в списке структур и может быть сохранена
+        обратно в JSON.
+      </p>
+
+      <h3>Связь с PiFi / Sfiral</h3>
+      <p>
+        Проект развивается в рамках более широкой исследовательской линии
+        <b>Sfiral / PiFi</b>.
+      </p>
+      <p>
+        Связанный проект
+        <a href="https://github.com/stanislavsfiral/PiFi-IA_Anima" target="_blank" rel="noreferrer">PiFi-IA_Anima</a>
+        описывается как квантово-оптическое и топологическое ядро на базе
+        геометрии Сфирали, S-переходов и троичных фазовых расчётов.
+        Среди его идей:
+      </p>
+      <ul>
+        <li>зеркально-антисимметричная топология;</li>
+        <li>S-образные переходы без разрыва потока;</li>
+        <li>троичные фазовые состояния: <span class="kbd">+1</span>, <span class="kbd">0</span>, <span class="kbd">-1</span>;</li>
+        <li>интерактивный конструктор и визуализация фрактальных структур;</li>
+        <li>спектральный анализ;</li>
+        <li>двухканальная обработка сигналов.</li>
+      </ul>
+      <p>
+        Текущая витрина использует эти идеи как методологический ориентир, но
+        практическая реализация на данном этапе — это наглядный геометрический
+        preview структур и их зеркальных представлений.
+      </p>
+
+      <h3>Как пользоваться</h3>
+      <ul>
+        <li>Выберите модель в списке <b>Структура</b>.</li>
+        <li>Или нажмите <b>Загрузить файл</b> и выберите свой SDF / JSON.</li>
+        <li>Можно просто перетащить файл в 3D-окно.</li>
+        <li>Переключайте режимы: <b>Оригинал</b>, <b>Зеркало</b>, <b>Overlay</b>.</li>
+        <li>Крутите модель левой кнопкой мыши.</li>
+        <li>Приближайте колесом мыши.</li>
+        <li>Читайте базовый отчёт в левой панели.</li>
+        <li>Нажмите <b>Скачать паспорт JSON</b>, чтобы сохранить базовый геометрический отчёт.</li>
+        <li>При наличии <span class="kbd">reports.json</span> здесь же появится расширенный Sfiral-отчёт.</li>
+      </ul>
+
+      <h3>Короткий вывод</h3>
+      <div class="note ok">
+        <p>
+          <b>GitHub Pages / эта страница — витрина.</b><br />
+          Она показывает проект, геометрию, зеркальные сравнения и базовый отчёт.
+        </p>
+        <p>
+          <b>Python / Docker / лабораторный контур — рабочий инструмент.</b><br />
+          Он нужен для полноценного воспроизводимого геометрического аудита.
+        </p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+// ---------- colors and radii (CPK, Å) ----------
+const ELEM = {
+  H: { color: 0xffffff, r: 0.30 },
+  C: { color: 0x909090, r: 0.75 },
+  N: { color: 0x3050f8, r: 0.70 },
+  O: { color: 0xff0d0d, r: 0.65 },
+  S: { color: 0xffff30, r: 1.00 },
+  P: { color: 0xff8000, r: 1.00 },
+  F: { color: 0x90e050, r: 0.60 },
+  CL: { color: 0x1ff01f, r: 1.00 },
+  BR: { color: 0xa62929, r: 1.10 },
+};
+
+const DEF = { color: 0xd9d9d9, r: 0.80 };
+const elemInfo = s => ELEM[(s || 'X').toUpperCase()] || DEF;
+
+// ---------- fallback demo structure ----------
+function makeDemoHelix() {
+  const atoms = [];
+  const seq = ['N', 'C', 'C', 'O'];
+  const n = 48;
+
+  for (let i = 0; i < n; i++) {
+    const t = i * 0.55;
+    const el = seq[i % seq.length];
+    const wobble = (i % 4 === 0) ? 1.4 : 0.0;
+
+    atoms.push({
+      x: Math.cos(t) * (3.0 + wobble),
+      y: i * 0.42 - n * 0.21,
+      z: Math.sin(t) * (3.0 + wobble),
+      element: el,
+    });
+  }
+
+  const bonds = [];
+  for (let i = 0; i < n - 1; i++) bonds.push([i, i + 1]);
+
+  return {
+    id: 'demo',
+    name: 'Demo helix fragment',
+    atoms,
+    bonds,
+  };
+}
+
+// ---------- load models ----------
+let MODELS = [];
+
+try {
+  const r = await fetch('./models.json');
+  if (r.ok) {
+    const data = await r.json();
+    if (Array.isArray(data) && data.length) MODELS = data;
+  }
+} catch (e) {
+  // models.json optional, fallback demo will be used
+}
+
+if (!MODELS.length) MODELS = [makeDemoHelix()];
+
+// ---------- optional full Sfiral reports ----------
+let REPORTS = new Map();
+
+try {
+  const rr = await fetch('./reports.json');
+  if (rr.ok) {
+    const rd = await rr.json();
+
+    const add = (key, val) => {
+      if (key !== undefined && key !== null) {
+        REPORTS.set(String(key), val);
+      }
+    };
+
+    if (Array.isArray(rd)) {
+      for (const item of rd) {
+        if (!item) continue;
+        add(item.id, item);
+        add(item.name, item);
+      }
+    } else if (rd && typeof rd === 'object') {
+      for (const [k, v] of Object.entries(rd)) {
+        add(k, v);
+      }
+    }
+  }
+} catch (e) {
+  // reports.json optional
+}
+
+const ATOMIC_MASS = {
+  H: 1.008,
+  C: 12.011,
+  N: 14.007,
+  O: 15.999,
+  S: 32.06,
+  P: 30.974,
+  F: 18.998,
+  CL: 35.45,
+  BR: 79.904,
+  I: 126.904,
+};
+
+const ELEMENT_DISPLAY = {
+  H: 'H',
+  C: 'C',
+  N: 'N',
+  O: 'O',
+  S: 'S',
+  P: 'P',
+  F: 'F',
+  CL: 'Cl',
+  BR: 'Br',
+  I: 'I',
+};
+
+function elemDisplay(el) {
+  const u = String(el || 'X').toUpperCase();
+  return ELEMENT_DISPLAY[u] || (u.charAt(0) + u.slice(1).toLowerCase());
+}
+
+function hillFormula(counts) {
+  const entries = Object.entries(counts).filter(([, v]) => v > 0);
+  if (!entries.length) return '-';
+
+  const hasC = entries.some(([k]) => k === 'C');
+  const order = [];
+
+  if (hasC) {
+    if (counts.C) order.push(['C', counts.C]);
+    if (counts.H) order.push(['H', counts.H]);
+
+    const rest = entries
+      .filter(([k]) => k !== 'C' && k !== 'H')
+      .sort(([a], [b]) => a.localeCompare(b));
+
+    order.push(...rest);
+  } else {
+    order.push(...entries.sort(([a], [b]) => a.localeCompare(b)));
+  }
+
+  return order
+    .map(([k, v]) => elemDisplay(k) + (v > 1 ? v : ''))
+    .join('');
+}
+
+function fmt(x, digits = 3) {
+  return Number.isFinite(x) ? x.toFixed(digits) : '—';
+}
+
+function computeBasicReport(model) {
+  const atoms = Array.isArray(model.atoms) ? model.atoms : [];
+  const bonds = Array.isArray(model.bonds) ? model.bonds : [];
+  const n = atoms.length;
+
+  const counts = {};
+  let mass = 0;
+
+  for (const a of atoms) {
+    const el = String(a.element || 'X').toUpperCase();
+    counts[el] = (counts[el] || 0) + 1;
+    mass += ATOMIC_MASS[el] || 0;
+  }
+
+  let minX = Infinity, minY = Infinity, minZ = Infinity;
+  let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+  let cx = 0, cy = 0, cz = 0;
+
+  for (const a of atoms) {
+    const x = Number(a.x) || 0;
+    const y = Number(a.y) || 0;
+    const z = Number(a.z) || 0;
+
+    minX = Math.min(minX, x);
+    minY = Math.min(minY, y);
+    minZ = Math.min(minZ, z);
+
+    maxX = Math.max(maxX, x);
+    maxY = Math.max(maxY, y);
+    maxZ = Math.max(maxZ, z);
+
+    cx += x;
+    cy += y;
+    cz += z;
+  }
+
+  if (!n) {
+    minX = minY = minZ = 0;
+    maxX = maxY = maxZ = 0;
+    cx = cy = cz = 0;
+  }
+
+  const centroid = [cx / (n || 1), cy / (n || 1), cz / (n || 1)];
+
+  let rg2 = 0;
+  let totalMass = 0;
+
+  for (const a of atoms) {
+    const el = String(a.element || 'X').toUpperCase();
+    const m = ATOMIC_MASS[el] || 1;
+
+    const dx = (Number(a.x) || 0) - centroid[0];
+    const dy = (Number(a.y) || 0) - centroid[1];
+    const dz = (Number(a.z) || 0) - centroid[2];
+
+    totalMass += m;
+    rg2 += m * (dx * dx + dy * dy + dz * dz);
+  }
+
+  const rg = totalMass > 0 ? Math.sqrt(rg2 / totalMass) : 0;
+
+  let blSum = 0;
+  let blMin = Infinity;
+  let blMax = 0;
+  let blCount = 0;
+
+  for (const b of bonds) {
+    const i = Number(b[0]);
+    const j = Number(b[1]);
+
+    if (!Number.isInteger(i) || !Number.isInteger(j)) continue;
+    if (i < 0 || j < 0 || i >= n || j >= n) continue;
+
+    const ax = Number(atoms[i].x) || 0;
+    const ay = Number(atoms[i].y) || 0;
+    const az = Number(atoms[i].z) || 0;
+
+    const bx = Number(atoms[j].x) || 0;
+    const by = Number(atoms[j].y) || 0;
+    const bz = Number(atoms[j].z) || 0;
+
+    const dx = ax - bx;
+    const dy = ay - by;
+    const dz = az - bz;
+
+    const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+    if (d > 1e-9) {
+      blSum += d;
+      blMin = Math.min(blMin, d);
+      blMax = Math.max(blMax, d);
+      blCount += 1;
+    }
+  }
+
+  const size = [
+    maxX - minX,
+    maxY - minY,
+    maxZ - minZ,
+  ];
+
+  const elements = Object.entries(counts)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([k, v]) => `${elemDisplay(k)}:${v}`)
+    .join(' ');
+
+  return {
+    atoms: n,
+    bonds: bonds.length,
+    formula: hillFormula(counts),
+    mass,
+    elements,
+    centroid,
+    size,
+    rg,
+    bondCount: blCount,
+    bondAvg: blCount ? blSum / blCount : NaN,
+    bondMin: blCount ? blMin : NaN,
+    bondMax: blCount ? blMax : NaN,
+  };
+}
+
+function formatFullReport(r) {
+  const lines = [];
+
+  const simpleKeys = [
+    'status',
+    'verdict',
+    'explanation',
+    'reasons',
+    'warnings',
+    'g_original',
+    'g_mirror',
+    'g_transformed',
+    'sign_flip',
+    'handeness',
+    'expected_handeness',
+    'rmsd_proper',
+    'rmsd_improper',
+    'min_distance',
+    'min_interpiece_distance',
+    'clash_count',
+    'contact_angle_deg',
+    'target_distance',
+    'split_axis',
+    'transform_mode',
+  ];
+
+  for (const k of simpleKeys) {
+    const v = r[k];
+    if (v === undefined || v === null) continue;
+    lines.push(`${k}: ${typeof v === 'object' ? JSON.stringify(v) : String(v)}`);
+  }
+
+  if (r.metrics) {
+    lines.push(`metrics: ${JSON.stringify(r.metrics)}`);
+  }
+
+  if (r.contact) {
+    lines.push(`contact: ${JSON.stringify(r.contact)}`);
+  }
+
+  if (r.diagnostics) {
+    lines.push(`diagnostics: ${JSON.stringify(r.diagnostics)}`);
+  }
+
+  lines.push(`raw: ${JSON.stringify(r)}`);
+
+  return lines.join('\n');
+}
+
+function buildReport(model, mode) {
+  const b = computeBasicReport(model);
+  const lines = [];
+
+  lines.push('=== geometric passport ===');
+  lines.push(`name: ${model.name || '-'}`);
+  lines.push(`id: ${model.id || '-'}`);
+  lines.push(`view mode: ${mode}`);
+  lines.push(`atoms: ${b.atoms}`);
+  lines.push(`bonds: ${b.bonds}`);
+  lines.push(`formula: ${b.formula}`);
+  lines.push(`approx mass: ${fmt(b.mass, 2)} Da`);
+  lines.push(`elements: ${b.elements || '-'}`);
+  lines.push(`bbox size: ${fmt(b.size[0], 2)} × ${fmt(b.size[1], 2)} × ${fmt(b.size[2], 2)} Å`);
+  lines.push(`centroid: [${fmt(b.centroid[0])}, ${fmt(b.centroid[1])}, ${fmt(b.centroid[2])}] Å`);
+  lines.push(`radius of gyration: ${fmt(b.rg)} Å`);
+
+  if (b.bondCount) {
+    lines.push(`bond length avg: ${fmt(b.bondAvg)} Å`);
+    lines.push(`bond length min: ${fmt(b.bondMin)} Å`);
+    lines.push(`bond length max: ${fmt(b.bondMax)} Å`);
+  } else {
+    lines.push('bond length stats: no valid bonds');
+  }
+
+  lines.push('');
+  lines.push('=== mirror preview ===');
+  lines.push('mirror rule: x -> -x');
+  lines.push(`mirror centroid: [${fmt(-b.centroid[0])}, ${fmt(b.centroid[1])}, ${fmt(b.centroid[2])}] Å`);
+  lines.push('mirror formula: same');
+  lines.push('mirror bbox size: same');
+  lines.push('mirror radius of gyration: same');
+
+  lines.push('');
+
+  const full =
+    REPORTS.get(String(model.id ?? '')) ||
+    REPORTS.get(String(model.name ?? ''));
+
+  if (full) {
+    lines.push('=== full Sfiral report ===');
+    lines.push(formatFullReport(full));
+  } else {
+    lines.push('full Sfiral report: not loaded.');
+    lines.push('To show g / sign flip / RMSD / S-overlay, put reports.json next to index.html.');
+  }
+
+  return lines.join('\n');
+}
+
+// ---------- three.js scene ----------
+const canvas = document.getElementById('c');
+const viewport = document.getElementById('viewport');
+
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x070b14);
+
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 5000);
+
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true;
+controls.dampingFactor = 0.08;
+controls.autoRotate = true;
+controls.autoRotateSpeed = 1.2;
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.55));
+
+const dir = new THREE.DirectionalLight(0xffffff, 0.9);
+dir.position.set(50, 80, 60);
+scene.add(dir);
+
+const grid = new THREE.GridHelper(60, 20, 0x1f2d4a, 0x141d33);
+grid.material.opacity = 0.35;
+grid.material.transparent = true;
+scene.add(grid);
+
+let root = new THREE.Group();
+scene.add(root);
+
+const sphereGeo = new THREE.SphereGeometry(1, 18, 14);
+
+function mixColor(hex, tintHex, amount) {
+  const c = new THREE.Color(hex);
+  c.lerp(new THREE.Color(tintHex), amount);
+  return c;
+}
+
+function buildGroup(atoms, bonds, opts = {}) {
+  const { tint = null, tintAmount = 0.3, opacity = 1 } = opts;
+  const g = new THREE.Group();
+
+  if (!atoms.length) return g;
+
+  const mat = new THREE.MeshStandardMaterial({
+    roughness: 0.45,
+    metalness: 0.1,
+    transparent: opacity < 1,
+    opacity,
+  });
+
+  const mesh = new THREE.InstancedMesh(sphereGeo, mat, atoms.length);
+  const m = new THREE.Matrix4();
+  const q = new THREE.Quaternion();
+  const pos = new THREE.Vector3();
+  const scl = new THREE.Vector3();
+
+  atoms.forEach((a, i) => {
+    const info = elemInfo(a.element);
+    pos.set(a.x, a.y, a.z);
+
+    const r = info.r * 0.55;
+    scl.set(r, r, r);
+
+    m.compose(pos, q, scl);
+    mesh.setMatrixAt(i, m);
+
+    mesh.setColorAt(
+      i,
+      tint ? mixColor(info.color, tint, tintAmount) : new THREE.Color(info.color)
+    );
+  });
+
+  mesh.instanceMatrix.needsUpdate = true;
+  if (mesh.instanceColor) mesh.instanceColor.needsUpdate = true;
+
+  g.add(mesh);
+
+  if (bonds && bonds.length && atoms.length <= 20000) {
+    const pts = [];
+
+    for (const b of bonds) {
+      const i = b[0];
+      const j = b[1];
+
+      if (!atoms[i] || !atoms[j]) continue;
+
+      pts.push(
+        atoms[i].x, atoms[i].y, atoms[i].z,
+        atoms[j].x, atoms[j].y, atoms[j].z
+      );
+    }
+
+    if (pts.length) {
+      const bg = new THREE.BufferGeometry();
+      bg.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
+
+      const bm = new THREE.LineBasicMaterial({
+        color: tint ? mixColor(0x8899aa, tint, tintAmount) : 0x8899aa,
+        transparent: true,
+        opacity: opacity < 1 ? opacity * 0.7 : 0.55,
+      });
+
+      g.add(new THREE.LineSegments(bg, bm));
+    }
+  }
+
+  return g;
+}
+
+function mirrorAtoms(atoms) {
+  return atoms.map(a => ({ ...a, x: -a.x }));
+}
+
+function centerAndFit(atoms) {
+  let cx = 0, cy = 0, cz = 0;
+
+  for (const a of atoms) {
+    cx += a.x;
+    cy += a.y;
+    cz += a.z;
+  }
+
+  const n = atoms.length || 1;
+  cx /= n;
+  cy /= n;
+  cz /= n;
+
+  const shifted = atoms.map(a => ({
+    ...a,
+    x: a.x - cx,
+    y: a.y - cy,
+    z: a.z - cz,
+  }));
+
+  let maxR = 1;
+
+  for (const a of shifted) {
+    maxR = Math.max(maxR, Math.hypot(a.x, a.y, a.z));
+  }
+
+  return { atoms: shifted, radius: maxR };
+}
+
+// ---------- state ----------
+let currentMode = 'original';
+let currentModel = MODELS[0];
+
+function disposeGroup(g) {
+  g.traverse(ch => {
+    if (ch.geometry && ch.geometry !== sphereGeo) ch.geometry.dispose();
+    if (ch.material) ch.material.dispose();
+  });
+}
+
+function render() {
+  while (root.children.length) {
+    const ch = root.children.pop();
+    disposeGroup(ch);
+  }
+
+  const { atoms, radius } = centerAndFit(currentModel.atoms);
+  const allBonds = currentModel.bonds || [];
+  const showBondsChecked = document.getElementById('showBonds').checked;
+  const bonds = showBondsChecked ? allBonds : [];
+
+  const mir = mirrorAtoms(atoms);
+
+  if (currentMode === 'original') {
+    root.add(buildGroup(atoms, bonds));
+  } else if (currentMode === 'mirror') {
+    root.add(buildGroup(mir, bonds));
+  } else {
+    root.add(buildGroup(atoms, bonds, {
+      tint: 0x2266ff,
+      tintAmount: 0.35,
+      opacity: 0.55,
+    }));
+
+    root.add(buildGroup(mir, bonds, {
+      tint: 0xff8822,
+      tintAmount: 0.35,
+      opacity: 0.55,
+    }));
+  }
+
+  const dist = radius * 2.6 + 8;
+  camera.position.set(dist * 0.8, dist * 0.5, dist);
+  controls.target.set(0, 0, 0);
+  controls.update();
+
+  document.getElementById('badgeMode').textContent = currentMode;
+
+  document.getElementById('info').textContent =
+    `model:  ${currentModel.name}\n` +
+    `atoms:  ${atoms.length}\n` +
+    `bonds:  ${allBonds.length}\n` +
+    `mode:   ${currentMode}\n` +
+    `mirror: x → −x`;
+
+  document.getElementById('report').textContent =
+    buildReport(currentModel, currentMode);
+}
+
+// ---------- UI ----------
+const sel = document.getElementById('modelSelect');
+
+function refreshModelSelect(selectId = null) {
+  sel.innerHTML = '';
+
+  MODELS.forEach((m, i) => {
+    const o = document.createElement('option');
+    o.value = String(i);
+    o.textContent = `${m.name} (${m.atoms.length} atoms)`;
+    sel.appendChild(o);
+  });
+
+  if (selectId !== null) {
+    const idx = MODELS.findIndex(m => String(m.id) === String(selectId));
+    if (idx >= 0) {
+      sel.value = String(idx);
+      currentModel = MODELS[idx];
+    }
+  } else if (Number(sel.value) >= MODELS.length) {
+    sel.value = '0';
+    currentModel = MODELS[0];
+  }
+}
+
+refreshModelSelect();
+
+sel.addEventListener('change', () => {
+  currentModel = MODELS[+sel.value];
+  render();
+});
+
+const mOriginal = document.getElementById('mOriginal');
+const mMirror = document.getElementById('mMirror');
+const mOverlay = document.getElementById('mOverlay');
+
+const modeBtns = {
+  original: mOriginal,
+  mirror: mMirror,
+  overlay: mOverlay,
+};
+
+Object.entries(modeBtns).forEach(([mode, btn]) => {
+  btn.addEventListener('click', () => {
+    currentMode = mode;
+
+    Object.values(modeBtns).forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    render();
+  });
+});
+
+document.getElementById('autoRotate').addEventListener('change', e => {
+  controls.autoRotate = e.target.checked;
+});
+
+document.getElementById('showBonds').addEventListener('change', render);
+
+// ---------- info modal ----------
+const infoModal = document.getElementById('infoModal');
+const infoBtn = document.getElementById('infoBtn');
+const infoClose = document.getElementById('infoClose');
+
+function openInfo() {
+  infoModal.classList.add('open');
+  infoModal.setAttribute('aria-hidden', 'false');
+}
+
+function closeInfo() {
+  infoModal.classList.remove('open');
+  infoModal.setAttribute('aria-hidden', 'true');
+}
+
+infoBtn.addEventListener('click', openInfo);
+infoClose.addEventListener('click', closeInfo);
+
+infoModal.addEventListener('click', (event) => {
+  if (event.target === infoModal) {
+    closeInfo();
+  }
+});
+
+window.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && infoModal.classList.contains('open')) {
+    closeInfo();
+  }
+});
+
+// ---------- user model upload ----------
+const fileInput = document.getElementById('fileInput');
+const uploadBtn = document.getElementById('uploadBtn');
+const clearUserBtn = document.getElementById('clearUserBtn');
+const saveModelBtn = document.getElementById('saveModelBtn');
+const saveReportBtn = document.getElementById('saveReportBtn');
+const dropHint = document.getElementById('dropHint');
+
+const USER_MODELS_START_INDEX = MODELS.length;
+let loadedUserCount = 0;
+
+function sanitizeName(name, fallback = 'uploaded_model') {
+  return String(name || fallback)
+    .replace(/\.[^/.]+$/, '')
+    .replace(/[^\w\-]+/g, '_')
+    .slice(0, 80) || fallback;
+}
+
+function inferBondsJS(atoms, maxAtoms = 2000) {
+  const bonds = [];
+  const n = atoms.length;
+
+  if (n < 2 || n > maxAtoms) return bonds;
+
+  const radii = {
+    H: 0.31, C: 0.76, N: 0.71, O: 0.66, S: 1.05,
+    P: 1.07, F: 0.57, CL: 0.99, BR: 1.14, I: 1.33,
+  };
+
+  const defaultRadius = 0.77;
+  const factor = 1.25;
+
+  for (let i = 0; i < n; i++) {
+    const ei = String(atoms[i].element || 'X').toUpperCase();
+    const ri = radii[ei] || defaultRadius;
+
+    for (let j = i + 1; j < n; j++) {
+      const ej = String(atoms[j].element || 'X').toUpperCase();
+      const rj = radii[ej] || defaultRadius;
+
+      const dx = atoms[i].x - atoms[j].x;
+      const dy = atoms[i].y - atoms[j].y;
+      const dz = atoms[i].z - atoms[j].z;
+
+      const d = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+      if (d > 1e-9 && d < (ri + rj) * factor) {
+        bonds.push([i, j]);
+      }
+    }
+  }
+
+  return bonds;
+}
+
+function parseSDFText(text, fallbackName = 'uploaded.sdf') {
+  const blocks = text.split('$$$$').filter(b => b.trim().length > 0);
+  const models = [];
+
+  blocks.forEach((block, blockIdx) => {
+    const lines = block.split(/\r?\n/);
+    if (lines.length < 4) return;
+
+    const name = (lines[0] || '').trim() || `${fallbackName} #${blockIdx + 1}`;
+    const counts = (lines[3] || '').trim().split(/\s+/);
+
+    const nAtoms = parseInt(counts[0], 10);
+    const nBonds = parseInt(counts[1] || '0', 10);
+
+    if (!Number.isFinite(nAtoms) || nAtoms <= 0) return;
+
+    const atoms = [];
+
+    for (let i = 0; i < nAtoms; i++) {
+      const line = lines[4 + i];
+      if (!line) continue;
+
+      const parts = line.trim().split(/\s+/);
+      if (parts.length < 4) continue;
+
+      const x = parseFloat(parts[0]);
+      const y = parseFloat(parts[1]);
+      const z = parseFloat(parts[2]);
+      const element = (parts[3] || 'X').toUpperCase();
+
+      if (!Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(z)) continue;
+
+      atoms.push({ x, y, z, element });
+    }
+
+    if (!atoms.length) return;
+
+    const bonds = [];
+
+    for (let i = 0; i < nBonds; i++) {
+      const line = lines[4 + nAtoms + i];
+      if (!line) continue;
+
+      const parts = line.trim().split(/\s+/);
+      if (parts.length < 2) continue;
+
+      const a = parseInt(parts[0], 10) - 1;
+      const b = parseInt(parts[1], 10) - 1;
+
+      if (Number.isInteger(a) && Number.isInteger(b) &&
+          a >= 0 && b >= 0 && a < atoms.length && b < atoms.length) {
+        bonds.push([a, b]);
+      }
+    }
+
+    const finalBonds = bonds.length ? bonds : inferBondsJS(atoms, 2000);
+
+    models.push({
+      id: `user_${Date.now()}_${blockIdx}`,
+      name: sanitizeName(name, fallbackName),
+      atoms,
+      bonds: finalBonds,
+      source: 'user_upload',
+    });
+  });
+
+  return models;
+}
+
+function normalizeUploadedJSON(data, fallbackName = 'uploaded.json') {
+  const arr = Array.isArray(data) ? data : [data];
+  const models = [];
+
+  arr.forEach((item, idx) => {
+    if (!item || !Array.isArray(item.atoms)) return;
+
+    const atoms = item.atoms
+      .map(a => ({
+        x: Number(a.x),
+        y: Number(a.y),
+        z: Number(a.z),
+        element: String(a.element || a.el || a.symbol || 'X').toUpperCase(),
+      }))
+      .filter(a => Number.isFinite(a.x) && Number.isFinite(a.y) && Number.isFinite(a.z));
+
+    if (!atoms.length) return;
+
+    const bonds = Array.isArray(item.bonds)
+      ? item.bonds
+          .map(b => [Number(b[0]), Number(b[1])])
+          .filter(([a, b]) =>
+            Number.isInteger(a) && Number.isInteger(b) &&
+            a >= 0 && b >= 0 && a < atoms.length && b < atoms.length
+          )
+      : inferBondsJS(atoms, 2000);
+
+    models.push({
+      id: item.id || `user_json_${Date.now()}_${idx}`,
+      name: sanitizeName(item.name || fallbackName, fallbackName),
+      atoms,
+      bonds,
+      source: 'user_json',
+    });
+  });
+
+  return models;
+}
+
+function addUploadedModels(models) {
+  if (!models.length) {
+    alert('Не удалось прочитать модель из файла.');
+    return;
+  }
+
+  const firstId = models[0].id;
+
+  MODELS.push(...models);
+  loadedUserCount += models.length;
+
+  refreshModelSelect(firstId);
+  render();
+
+  alert(`Загружено моделей: ${models.length}`);
+}
+
+async function handleFiles(files) {
+  const list = Array.from(files || []);
+  if (!list.length) return;
+
+  const allModels = [];
+
+  for (const file of list) {
+    const text = await file.text();
+    const lower = file.name.toLowerCase();
+
+    try {
+      if (lower.endsWith('.json')) {
+        const data = JSON.parse(text);
+        allModels.push(...normalizeUploadedJSON(data, file.name));
+      } else {
+        allModels.push(...parseSDFText(text, file.name));
+      }
+    } catch (err) {
+      console.error('Parse error', file.name, err);
+    }
+  }
+
+  addUploadedModels(allModels);
+}
+
+uploadBtn.addEventListener('click', () => fileInput.click());
+
+fileInput.addEventListener('change', async (event) => {
+  await handleFiles(event.target.files);
+  fileInput.value = '';
+});
+
+clearUserBtn.addEventListener('click', () => {
+  if (loadedUserCount <= 0) {
+    alert('Пользовательских моделей пока нет.');
+    return;
+  }
+
+  MODELS.splice(USER_MODELS_START_INDEX, loadedUserCount);
+  loadedUserCount = 0;
+
+  refreshModelSelect(MODELS[0] ? MODELS[0].id : null);
+  render();
+});
+
+function downloadText(filename, text, mime = 'application/json') {
+  const blob = new Blob([text], { type: `${mime};charset=utf-8` });
+  const url = URL.createObjectURL(blob);
+
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
+saveModelBtn.addEventListener('click', () => {
+  if (!currentModel) return;
+
+  const payload = {
+    id: currentModel.id,
+    name: currentModel.name,
+    atoms: currentModel.atoms,
+    bonds: currentModel.bonds || [],
+    source: currentModel.source || 'showcase',
+  };
+
+  downloadText(
+    `${sanitizeName(currentModel.name, 'model')}.json`,
+    JSON.stringify(payload, null, 2)
+  );
+});
+
+function buildPassportJSON(model, mode) {
+  const b = computeBasicReport(model);
+
+  return {
+    tool: 'Sfiral 3D Showcase',
+    type: 'basic_geometric_passport',
+    warning: 'Demonstration browser passport only. Not a full laboratory Sfiral audit.',
+    model: {
+      id: model.id || null,
+      name: model.name || null,
+      source: model.source || null,
+    },
+    view_mode: mode,
+    atoms: b.atoms,
+    bonds: b.bonds,
+    formula: b.formula,
+    approx_mass_da: Number.isFinite(b.mass) ? b.mass : null,
+    elements: b.elements,
+    bbox_size_angstrom: {
+      x: b.size[0],
+      y: b.size[1],
+      z: b.size[2],
+    },
+    centroid_angstrom: {
+      x: b.centroid[0],
+      y: b.centroid[1],
+      z: b.centroid[2],
+    },
+    radius_of_gyration_angstrom: b.rg,
+    bond_length_stats_angstrom: {
+      count: b.bondCount,
+      avg: Number.isFinite(b.bondAvg) ? b.bondAvg : null,
+      min: Number.isFinite(b.bondMin) ? b.bondMin : null,
+      max: Number.isFinite(b.bondMax) ? b.bondMax : null,
+    },
+    mirror_preview: {
+      rule: 'x -> -x',
+      centroid: {
+        x: -b.centroid[0],
+        y: b.centroid[1],
+        z: b.centroid[2],
+      },
+      formula: 'same',
+      bbox_size: 'same',
+      radius_of_gyration: 'same',
+    },
+    full_sfiral_report_available:
+      REPORTS.has(String(model.id ?? '')) ||
+      REPORTS.has(String(model.name ?? '')),
+  };
+}
+
+saveReportBtn.addEventListener('click', () => {
+  if (!currentModel) return;
+
+  const passport = buildPassportJSON(currentModel, currentMode);
+
+  downloadText(
+    `${sanitizeName(currentModel.name, 'model')}_passport.json`,
+    JSON.stringify(passport, null, 2)
+  );
+});
+
+// drag & drop
+['dragenter', 'dragover'].forEach(eventName => {
+  viewport.addEventListener(eventName, (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    dropHint.classList.add('visible');
+  });
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+  viewport.addEventListener(eventName, (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (eventName === 'dragleave' && event.relatedTarget && viewport.contains(event.relatedTarget)) {
+      return;
+    }
+
+    dropHint.classList.remove('visible');
+  });
+});
+
+viewport.addEventListener('drop', async (event) => {
+  const files = event.dataTransfer && event.dataTransfer.files;
+  await handleFiles(files);
+});
+
+// ---------- resize + loop ----------
+function onResize() {
+  const w = viewport.clientWidth;
+  const h = viewport.clientHeight;
+
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+
+window.addEventListener('resize', onResize);
+onResize();
+
+(function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+})();
+
+render();
+</script>
+</body>
+</html>
